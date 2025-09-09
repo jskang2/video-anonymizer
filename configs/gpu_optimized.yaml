@@ -1,0 +1,21 @@
+input: data/in.mp4            # 입력 비디오 경로
+output: data/out.mp4          # 출력 비디오 경로
+parts: [eyes, elbows]         # 처리 대상 부위
+style: mosaic                 # mosaic|gaussian|boxblur|pixelate
+safety_margin_px: 12          # ROI 주변 여유
+ttl_frames: 5                 # 검출 실패시 유지 프레임 수
+
+# GPU 최적화 설정
+pose_model: yolov8s-pose.pt   # 더 큰 모델로 GPU 활용도 증가
+eye_cascade: haarcascade_eye.xml
+face_cascade: haarcascade_frontalface_default.xml
+log_every: 30                 # 진행 상황 로그 간격(프레임)
+
+# YOLO GPU 최적화 파라미터
+batch_size: 4                 # 배치 처리로 GPU 활용도 증가
+confidence: 0.3               # confidence threshold 낮춤 (더 많은 검출)
+iou_threshold: 0.7            # NMS IoU threshold
+max_det: 300                  # 최대 검출 수
+imgsz: 640                    # 입력 이미지 크기 (GPU에 최적화)
+half_precision: true          # FP16 사용으로 메모리 절약 및 속도 증가
+device: 0                     # GPU 디바이스 명시적 지정

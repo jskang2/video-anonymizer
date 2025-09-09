@@ -1,0 +1,10 @@
+input: data/in.mp4            # 입력 비디오 경로
+output: data/out.mp4          # 출력 비디오 경로
+parts: [eyes, elbows]         # 처리 대상 부위
+style: mosaic                 # mosaic|gaussian|boxblur|pixelate
+safety_margin_px: 12          # ROI 주변 여유
+ttl_frames: 5                 # 검출 실패시 유지 프레임 수
+pose_model: yolov8n-pose.pt   # YOLO pose 모델
+eye_cascade: haarcascade_eye.xml
+face_cascade: haarcascade_frontalface_default.xml
+log_every: 30                 # 진행 상황 로그 간격(프레임)

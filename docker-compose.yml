@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  anonymizer:
+    build: .
+    image: video-anonymizer-mvp:latest
+    volumes:
+      # ⚠️ WSL2 성능: 꼭 리눅스 경로를 마운트하세요(예: /home/ubuntu/project)
+      - ./:/app
+      - ./data:/app/data
+    command: ["python", "-m", "anonymizer.cli", "--help"]
+    # GPU 사용은 docker-compose 대신 아래의 docker run 예시를 권장합니다.
+    # (WSL2/Docker Desktop에서 compose의 GPU 설정 지원이 환경마다 다릅니다)
