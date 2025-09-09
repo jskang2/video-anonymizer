@@ -1,83 +1,55 @@
-# 🚀 비디오 익명화 최적화 버전 - 빠른 시작 가이드
+# 🚀 빠른 시작 가이드 (v3.0)
 
-## 🎯 성능 향상
-- **GPU 사용률**: 30% → 70% (2.3x 향상)
-- **CPU 사용률**: 30% → 70% (2.3x 향상)
-- **처리 속도**: 5-6배 향상 (140-200 FPS)
+이 프로젝트는 `make` 명령어를 사용하여 모든 주요 기능을 실행할 수 있습니다.
 
-## ⚡ 빠른 실행
+## 1. 빌드 (최초 1회)
 
-### Docker 실행 (권장)
+GPU가 장착된 환경을 기준으로 합니다.
 ```bash
-# CPU+GPU 최적화 (권장)
-docker run --gpus all -v "$(pwd)":/workspace -w /workspace \
-  video-anonymizer-gpu:latest python3 -m anonymizer.cli_ultra \
-  --input "data/your_video.mp4" \
-  --output "output/result.mp4" \
-  --pipeline cpu-gpu
-
-# 안정성 중시
-docker run --gpus all -v "$(pwd)":/workspace -w /workspace \
-  video-anonymizer-gpu:latest python3 -m anonymizer.cli_ultra \
-  --input "data/your_video.mp4" \
-  --output "output/result.mp4" \
-  --pipeline batch
+make build
 ```
 
-### 직접 실행
-```bash
-# 환경 활성화
-source venv/bin/activate
+## 2. 실행 (GPU 필수)
 
-# CPU+GPU 최적화 실행
-python -m anonymizer.cli_ultra \
-  --input "data/your_video.mp4" \
-  --output "output/result.mp4" \
-  --pipeline cpu-gpu \
-  --batch-size 6
+두 가지 고성능 파이프라인 중 선택하여 실행할 수 있습니다.
+
+### 품질 우선 실행 (권장)
+
+모든 프레임을 정밀하게 분석하여 높은 품질의 결과물을 생성합니다. (처리 속도: ~70 FPS)
+```bash
+make run-ultra
 ```
 
-## 🔧 파이프라인 옵션
+### 최고 속도 실행
 
-| 파이프라인 | 특징 | 사용 시점 |
-|-----------|------|----------|
-| `cpu-gpu` | CPU 70% + GPU 70% 균형 활용 | **권장** (일반 사용) |
-| `batch` | GPU 배치 최적화, 안정성 중시 | 안정성 우선 |
-| `ultra` | 최고 성능, 모든 최적화 적용 | 최대 성능 필요 |
-| `multithread` | CPU 중심 멀티스레딩 | GPU 부족 환경 |
-
-## ⚙️ 주요 옵션
-
+일부 연산을 최적화하여 최고 속도로 결과물을 생성합니다. (처리 속도: ~97 FPS)
 ```bash
---pipeline cpu-gpu      # 파이프라인 선택
---batch-size 6          # GPU 배치 크기 (4-8 권장)
---device 0              # CUDA 디바이스 번호
---config configs/gpu_optimized.yaml  # 설정 파일
+make run-speed
 ```
 
-## 📊 예상 성능
+## 3. 옵션 조정하여 실행하기
 
-**CPU+GPU 파이프라인**:
-- 처리 속도: 15-25 FPS (기존 대비 5-6배)
-- GPU 사용률: ~70%
-- CPU 사용률: ~70%
-- 메모리 효율: 최적화됨
+입력/출력 파일이나 성능/품질 관련 옵션을 직접 지정할 수 있습니다.
 
-**배치 파이프라인**:
-- GPU 활용: 지속적 고사용률
-- 안정성: 에러 없는 처리
-- 배치 처리: 8 프레임 동시
-
-## 🎉 바로 테스트해보세요!
-
+**예시 1: 다른 파일을 처리**
 ```bash
-# 테스트 데이터로 빠른 확인
-docker run --gpus all -v "$(pwd)":/workspace -w /workspace \
-  video-anonymizer-gpu:latest python3 -m anonymizer.cli_ultra \
-  --input "data/20140413_10sec.mp4" \
-  --output "output/optimized_test.mp4" \
-  --pipeline cpu-gpu \
-  --batch-size 6
+make run-ultra IN=path/to/my_video.mp4 OUT=path/to/my_result.mp4
 ```
 
-🚀 **GPU 70% + CPU 70% 활용으로 5-6배 빠른 처리를 경험하세요!**
+**예시 2: 품질 조정 (탐지를 더 민감하게, 마스킹 영역을 더 넓게)**
+```bash
+make run-ultra CONFIDENCE=0.25 SAFETY_MARGIN=20
+```
+
+**예시 3: 성능 조정 (배치 크기를 64로 늘려서 실행)**
+```bash
+make run-speed BATCH_SIZE=64
+```
+
+### 주요 조정 파라미터
+
+- `IN`: 입력 영상 경로
+- `OUT`: 출력 영상 경로
+- `CONFIDENCE`: 탐지 민감도 (0.1 ~ 1.0 사이, 낮을수록 많이 탐지)
+- `SAFETY_MARGIN`: 마스킹 영역 여백 (px)
+- `BATCH_SIZE`: GPU 배치 크기 (GPU 메모리에 따라 조절)

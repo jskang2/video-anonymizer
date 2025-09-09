@@ -1,186 +1,180 @@
 from __future__ import annotations
 import cv2
 import numpy as np
+from typing import List, Dict
+import threading
+import queue
 import time
 import torch
+import os
+from concurrent.futures import ThreadPoolExecutor, Future
 from .detectors import PoseDetector, FaceEyeDetector
-from .roi import elbows_from_keypoints, eyes_from_boxes, apply_anonymize
+from .roi import elbows_from_keypoints, eyes_from_boxes
 from .video_io import VideoReader, VideoWriter
+from .gpu_accelerated_ops import GPUAcceleratedOps
 
 class SpeedOptimizedPipeline:
-    """실제 처리 시간 단축에 최적화된 파이프라인"""
-    
+    """최고 속도에 중점을 두고 재설계된 파이프라인 (v3, 교착 상태 해결)"""
+
     def __init__(self, cfg):
         self.cfg = cfg
-        
-        # 속도 우선 설정 - 메모리 70% 활용으로 극도 최적화
-        speed_settings = {
-            'device': getattr(cfg, 'device', 0),
-            'confidence': getattr(cfg, 'confidence', 0.5),  # 더 높은 threshold로 처리량 대폭 감소
-            'batch_size': getattr(cfg, 'batch_size', 32),   # 메모리 70% 활용으로 대용량 배치
-            'half_precision': True  # FP16으로 속도 향상
-        }
-        
-        print(f"[Speed] 고속 처리 설정:")
-        print(f"  신뢰도 임계값: {speed_settings['confidence']} (높음=적은 검출)")
-        print(f"  배치 크기: {speed_settings['batch_size']} (큰 배치)")
-        print(f"  반정밀도: {speed_settings['half_precision']} (FP16)")
-        
-        # YOLO 모델 - 속도 최적화
-        self.pose = PoseDetector(cfg.pose_model, **speed_settings)
-        
-        # Eyes detection 최적화 - 더 빠른 설정
-        self.faceeye = FaceEyeDetector(cfg.face_cascade, cfg.eye_cascade)
-        self.batch_size = speed_settings['batch_size']
-        
-        # OpenCV 최적화
-        try:
-            cv2.setNumThreads(0)  # OpenCV가 최적 스레드 수 자동 선택
-        except:
-            cv2.setNumThreads(8)  # 최대 8 스레드
-        
-    def run(self, input_path: str, output_path: str):
-        """고속 처리 실행"""
-        print(f"[Speed] 고속 처리 시작 - 배치 크기: {self.batch_size}")
-        
-        rd = VideoReader(input_path)
-        total_frames = rd.n
-        
-        # VideoWriter 초기화
-        if total_frames > 0:
-            first_frame = next(iter(rd))
-            rd = VideoReader(input_path)  # 재초기화
-            h, w = first_frame.shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            wr = cv2.VideoWriter(output_path, fourcc, 30.0, (w, h))
-        else:
-            return
-        
-        start_time = time.time()
-        processed = 0
-        frame_buffer = []
-        
-        for frame_idx, frame in enumerate(rd):
-            frame_buffer.append((frame_idx, frame))
-            
-            # 배치가 찰 때마다 처리
-            if len(frame_buffer) >= self.batch_size:
-                results = self._process_batch_fast(frame_buffer)
-                
-                # 즉시 쓰기 (순서 보장 없음 - 속도 우선)
-                for idx, out_frame in results:
-                    wr.write(out_frame)
-                    processed += 1
-                
-                frame_buffer = []
-                
-                # 진행률 출력
-                if processed % (self.batch_size * 10) == 0:
-                    elapsed = time.time() - start_time
-                    fps = processed / elapsed if elapsed > 0 else 0
-                    progress = (processed / total_frames) * 100
-                    print(f"[Speed] {progress:.1f}% ({processed}/{total_frames}) - {fps:.1f} FPS")
-        
-        # 남은 프레임 처리
-        if frame_buffer:
-            results = self._process_batch_fast(frame_buffer)
-            for idx, out_frame in results:
-                wr.write(out_frame)
-                processed += 1
-        
-        wr.release()
-        rd.cap.release()
-        
-        total_time = time.time() - start_time
-        fps = total_frames / total_time
-        
-        print(f"[Speed] 고속 처리 완료:")
-        print(f"  총 시간: {total_time:.1f}초")
-        print(f"  처리 속도: {fps:.1f} FPS")
-        print(f"  예상 시간 단축: ~40-60%")
+        self.batch_size = getattr(cfg, 'batch_size', 32)
+        self.confidence = getattr(cfg, 'confidence', 0.5)
+        self.eye_detection_interval = 4
+        self.cpu_workers = os.cpu_count()
 
-    def _process_batch_fast(self, frame_buffer):
-        """고속 배치 처리"""
-        indices = [item[0] for item in frame_buffer]
-        frames = [item[1] for item in frame_buffer]
-        results = []
-        
-        # 1. Eyes detection (극도 간소화 - 4프레임마다만)
-        eyes_batch = []
-        if "eyes" in self.cfg.parts:
-            # 4프레임마다만 검출하여 75% 처리 시간 단축
-            for i, frame in enumerate(frames):
-                if i % 4 == 0:  # 4프레임마다만 검출
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    try:
-                        faces, eyes = self.faceeye.detect(gray)
-                        eyes_rois = eyes_from_boxes(eyes, self.cfg.safety_margin_px)
-                        eyes_batch.append(eyes_rois)
-                    except:
-                        eyes_batch.append([])
+        gpu_settings = {
+            'device': getattr(cfg, 'device', 0),
+            'confidence': self.confidence,
+            'batch_size': self.batch_size,
+            'half_precision': False
+        }
+
+        self.pose_detector = PoseDetector(cfg.pose_model, **gpu_settings)
+        self.gpu_ops = GPUAcceleratedOps(device=f"cuda:{gpu_settings['device']}")
+
+        self.read_queue = queue.Queue(maxsize=self.batch_size * 2)
+        self.cpu_queue = queue.Queue(maxsize=self.batch_size * 2)
+        self.gpu_queue = queue.Queue(maxsize=self.batch_size * 2)
+        self.writer_queue = queue.Queue(maxsize=self.batch_size * 2)
+
+        self.cpu_executor = ThreadPoolExecutor(max_workers=self.cpu_workers, thread_name_prefix='cpu_worker')
+        self.stop_event = threading.Event()
+
+        print(f"[Speed v3] 초기화 완료:")
+        print(f"  CPU 병렬 워커: {self.cpu_workers}")
+        print(f"  GPU 배치 크기: {self.batch_size}")
+
+    def _read_frames(self, input_path: str):
+        try:
+            rd = VideoReader(input_path)
+            for frame_idx, frame in enumerate(rd):
+                if self.stop_event.is_set(): break
+                self.read_queue.put((frame_idx, frame))
+        finally:
+            self.read_queue.put(None)
+            print("[Reader] 완료")
+
+    def _cpu_task_wrapper(self, gray_frame: np.ndarray) -> tuple[list, list]:
+        face_eye_detector = FaceEyeDetector(self.cfg.face_cascade, self.cfg.eye_cascade)
+        return face_eye_detector.detect(gray_frame)
+
+    def _dispatch_cpu_tasks(self):
+        try:
+            while not self.stop_event.is_set():
+                item = self.read_queue.get()
+                if item is None: break
+                frame_idx, frame = item
+                if frame_idx % self.eye_detection_interval == 0:
+                    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    future = self.cpu_executor.submit(self._cpu_task_wrapper, gray_frame)
                 else:
-                    # 이전 결과 재사용 (메모리 효율적)
-                    eyes_batch.append(eyes_batch[-1] if eyes_batch else [])
-        else:
-            eyes_batch = [[] for _ in frames]
-        
-        # 2. Elbows detection (GPU 배치 - 핵심)
-        elbows_batch = []
-        if "elbows" in self.cfg.parts:
-            # 큰 배치로 GPU 처리
-            batch_keypoints = self.pose.infer_batch(frames)
-            for kpts_list in batch_keypoints:
-                elbows_rois = []
-                for kpts in kpts_list:
-                    elbows_rois.extend(elbows_from_keypoints(kpts, self.cfg.safety_margin_px))
-                elbows_batch.append(elbows_rois)
-        else:
-            elbows_batch = [[] for _ in frames]
-        
-        # 3. 극도 고속 익명화 처리 (메모리 70% 활용)
-        if not frames:
-            return results
-            
-        # 한번에 처리할 수 있는 ROI들을 미리 수집 (메모리 활용)
-        all_rois = []
-        for i in range(len(frames)):
-            rois = eyes_batch[i] + elbows_batch[i] if i < len(eyes_batch) and i < len(elbows_batch) else []
-            all_rois.append(rois)
-        
-        # 대용량 메모리 활용: 모든 프레임을 numpy 배열로 한번에 처리
-        frames_array = np.array(frames)
-        h, w = frames_array.shape[1:3]
-        
-        # 극도로 빠른 모자이크 생성 (메모리 집약적 접근)
-        # 25:1 비율로 다운샘플링 (기존 20:1보다 더 공격적)
-        small_h, small_w = h//25, w//25
-        
-        for i, (frame, idx, rois) in enumerate(zip(frames, indices, all_rois)):
-            if rois:
-                # ROI별로 개별 처리 대신 전체 마스크 한번에 생성
-                mask = np.zeros((h, w), dtype=np.uint8)
-                for roi in rois:
-                    if roi["shape"] == "circle":
-                        x, y, r = int(roi["params"][0]), int(roi["params"][1]), int(roi["params"][2])
-                        # 원 그리기 최적화 (anti-aliasing 제거)
-                        cv2.circle(mask, (x, y), r, 255, -1, lineType=cv2.LINE_4)
+                    future = Future()
+                    future.set_result(([], []))
+                self.cpu_queue.put((frame_idx, frame, future))
+        finally:
+            self.cpu_queue.put(None)
+            print("[CPU Dispatcher] 완료")
+
+    def _collect_cpu_results(self):
+        try:
+            while not self.stop_event.is_set():
+                item = self.cpu_queue.get()
+                if item is None: break
+                frame_idx, frame, future = item
+                _, eyes = future.result()
+                eye_rois = eyes_from_boxes(eyes, self.cfg.safety_margin_px)
+                self.gpu_queue.put((frame_idx, frame, eye_rois))
+        finally:
+            self.gpu_queue.put(None)
+            print("[CPU Collector] 완료")
+
+    def _process_gpu_batch(self):
+        try:
+            while not self.stop_event.is_set():
+                batch_data = []
+                sentinel_received = False
+                try:
+                    item = self.gpu_queue.get(timeout=1)
+                    if item is None:
+                        sentinel_received = True
+                    else:
+                        batch_data.append(item)
+                        while len(batch_data) < self.batch_size:
+                            item = self.gpu_queue.get_nowait()
+                            if item is None:
+                                self.gpu_queue.put(None) # Put it back for the next loop
+                                sentinel_received = True
+                                break
+                            batch_data.append(item)
+                except queue.Empty:
+                    pass
+
+                if batch_data:
+                    frames = [item[1] for item in batch_data]
+                    batch_keypoints = self.pose_detector.infer_batch(frames)
+                    for i, (frame_idx, frame, eye_rois) in enumerate(batch_data):
+                        kpts = batch_keypoints[i][0] if i < len(batch_keypoints) and batch_keypoints[i] else []
+                        elbow_rois = elbows_from_keypoints(kpts, self.cfg.safety_margin_px)
+                        all_rois = eye_rois + elbow_rois
+                        mask = self.gpu_ops.draw_mask_gpu(frame.shape[:2], all_rois)
+                        out_frame = self.gpu_ops.apply_anonymize_gpu(frame, mask, style=self.cfg.style)
+                        self.writer_queue.put((frame_idx, out_frame))
                 
-                if np.any(mask):
-                    # 극도 빠른 모자이크 (메모리 집약적)
-                    small = cv2.resize(frame, (small_w, small_h), interpolation=cv2.INTER_LINEAR)
-                    pixelated = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
-                    
-                    # 비트 연산 최적화
-                    mask_3ch = np.stack([mask, mask, mask], axis=2)
-                    inv_mask = 255 - mask_3ch
-                    
-                    # numpy 벡터화 연산 (OpenCV bitwise보다 빠름)
-                    out = np.where(mask_3ch > 0, pixelated, frame).astype(np.uint8)
-                else:
-                    out = frame
-            else:
-                out = frame
-            
-            results.append((idx, out))
-        
-        return results
+                if sentinel_received:
+                    break
+        finally:
+            self.writer_queue.put(None)
+            print("[GPU Processor] 완료")
+
+    def _write_frames(self, output_path: str, total_frames: int, w: int, h: int, fps: float):
+        wr = VideoWriter(output_path, w, h, fps)
+        buffer = {}
+        next_idx = 0
+        processed_count = 0
+        try:
+            while True:
+                item = self.writer_queue.get()
+                if item is None: break
+                frame_idx, frame = item
+                buffer[frame_idx] = frame
+                while next_idx in buffer:
+                    out_frame = buffer.pop(next_idx)
+                    wr.write(out_frame)
+                    processed_count += 1
+                    if processed_count % 100 == 0:
+                        print(f"[Writer] 진행률: {processed_count}/{total_frames}")
+                    next_idx += 1
+        finally:
+            for idx in sorted(buffer.keys()):
+                wr.write(buffer[idx])
+                processed_count += 1
+            print(f"[Writer] 최종 프레임 쓰기 완료. 총 {processed_count} 프레임.")
+            if wr: wr.release()
+            print("[Writer] 완료")
+
+    def run(self, input_path: str, output_path: str):
+        rd = VideoReader(input_path)
+        total_frames, w, h, fps = rd.n, rd.w, rd.h, rd.fps
+        rd.cap.release()
+        if total_frames <= 0: return
+
+        start_time = time.time()
+        threads = [
+            threading.Thread(target=self._read_frames, args=(input_path,), name="Reader"),
+            threading.Thread(target=self._dispatch_cpu_tasks, name="CPU-Dispatcher"),
+            threading.Thread(target=self._collect_cpu_results, name="CPU-Collector"),
+            threading.Thread(target=self._process_gpu_batch, name="GPU-Processor"),
+            threading.Thread(target=self._write_frames, args=(output_path, total_frames, w, h, fps), name="Writer")
+        ]
+
+        for t in threads: t.start()
+        threads[-1].join()
+        self.stop_event.set()
+        for t in threads[:-1]:
+            t.join()
+
+        self.cpu_executor.shutdown(wait=True)
+        total_time = time.time() - start_time
+        final_fps = total_frames / total_time if total_time > 0 else 0
+        print(f"\n[완료] 처리 시간: {total_time:.2f}초, 처리 속도: {final_fps:.2f} FPS")
