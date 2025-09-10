@@ -1,0 +1,32 @@
+# CPU 전용 Docker 이미지 - 기본 처리 (~5 FPS)
+# GPU가 없는 환경이나 호환성 테스트용
+FROM python:3.10-slim
+
+# Python 및 Docker 최적화 환경변수
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    OPENCV_LOG_LEVEL=ERROR \
+    PIP_NO_CACHE_DIR=1
+
+# 시스템 의존성 설치 (비디오 처리 및 OpenCV용)
+# ffmpeg: 비디오 입출력 처리
+# libgl1: OpenCV GUI 지원
+# ca-certificates, curl: 네트워크 보안 및 다운로드
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg libgl1 ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# Python 의존성 설치 (CPU 전용)
+COPY requirements-cpu.txt ./requirements.txt
+RUN pip install -r requirements.txt
+
+# 소스 코드 복사
+COPY . .
+
+# 기본 명령어: CLI 도움말 표시
+# 실제 사용: docker run --rm -v $(PWD):/app video-anonymizer-cpu python -m anonymizer.cli --input video.mp4 --output result.mp4
+CMD ["python", "-m", "anonymizer.cli", "--help"]

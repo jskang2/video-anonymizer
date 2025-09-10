@@ -1,23 +1,29 @@
-.PHONY: build run help test demo run-ultra run-speed run-auto-ultra run-auto-speed run-auto hardware-info container-setup container-clean container-status
+.PHONY: build build-cpu run help test demo run-ultra run-speed run-auto-ultra run-auto-speed run-auto hardware-info container-setup container-clean container-status
 
 # 컨테이너 설정
 CONTAINER_NAME ?= video-anonymizer-persistent
 VOLUME_NAME ?= video-anonymizer-cache
 
 help:
-	@echo "make build           # Docker 이미지 빌드"
+	@echo "🤖 === AI 자동 최적화 (GPU 필수) ==="
+	@echo "make build           # GPU용 Docker 이미지 빌드"
 	@echo "make container-setup # 영구 컨테이너 및 볼륨 생성"
-	@echo "make container-clean # 컨테이너 및 볼륨 정리"
-	@echo "make container-status # 컨테이너 상태 확인"
-	@echo "make run             # 기본 파이프라인 실행"
-	@echo "make run-ultra       # 고품질 최적화 파이프라인 실행 (GPU 필수)"
-	@echo "make run-speed       # 최고 속도 최적화 파이프라인 실행 (GPU 필수)"
 	@echo "make run-auto-ultra  # 🤖 자동 최적화 + 고품질 파이프라인 (권장)"
 	@echo "make run-auto-speed  # 🤖 자동 최적화 + 최고 속도 파이프라인"
 	@echo "make run-auto        # 🤖 완전 자동 최적화 (파이프라인 자동 선택)"
 	@echo "make hardware-info   # 하드웨어 정보 출력"
-	@echo "make test            # 스모크 테스트"
+	@echo ""
+	@echo "🔧 === 수동 최적화 ==="
+	@echo "make run-ultra       # 고품질 최적화 파이프라인 실행 (GPU 필수)"
+	@echo "make run-speed       # 최고 속도 최적화 파이프라인 실행 (GPU 필수)"
+	@echo "make run             # 기본 파이프라인 실행 (CPU 전용)"
+	@echo ""
+	@echo "🛠️  === 개발 및 관리 ==="
+	@echo "make build-cpu       # CPU용 Docker 이미지 빌드"
+	@echo "make test            # 스모크 테스트 (CPU)"
 	@echo "make demo            # 데모 영상 다운로드"
+	@echo "make container-status # 컨테이너 상태 확인"
+	@echo "make container-clean # 컨테이너 및 볼륨 정리"
 
 # 컨테이너 관리
 container-setup:
@@ -41,14 +47,17 @@ container-status:
 	@docker volume ls --filter name=$(VOLUME_NAME) --format "table {{.Name}}\t{{.Driver}}\t{{.CreatedAt}}" || echo "볼륨 없음"
 
 build:
-	docker build -t video-anonymizer-mvp:latest .
+	docker build -f Dockerfile.gpu -t video-anonymizer-gpu:slim .
+
+build-cpu:
+	docker build -f Dockerfile.cpu -t video-anonymizer-cpu:latest .
 
 demo:
 	bash scripts/download_demo.sh
 
 run:
 	@[ -n "$(IN)" ] || (echo "IN=<입력영상> 지정 필요" && exit 1)
-	docker run --rm -v $(PWD):/app video-anonymizer-mvp:latest \
+	docker run --rm -v $(PWD):/app video-anonymizer-cpu:latest \
 	  python -m anonymizer.cli \
 	  --input $(IN) \
 	  --output $(OUT) \
@@ -56,7 +65,7 @@ run:
 	  --style $(STYLE)
 
 test:
-	docker run --rm -v $(PWD):/app video-anonymizer-mvp:latest \
+	docker run --rm -v $(PWD):/app video-anonymizer-cpu:latest \
 	  pytest -q
 
 # --- 고성능 파이프라인 --- #

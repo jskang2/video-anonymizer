@@ -24,10 +24,9 @@ RUN apt-get update && apt-get install -y \
 # OpenCV 설치 (GPU 지원)
 RUN pip install opencv-python-headless
 
-# Python 의존성 설치
-COPY requirements.txt requirements_auto.txt /tmp/
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --no-cache-dir -r /tmp/requirements_auto.txt
+# Python 의존성 설치 (GPU 지원)
+COPY requirements-gpu.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements-gpu.txt
 
 # 작업 디렉토리 설정
 WORKDIR /workspace
