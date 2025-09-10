@@ -1,3 +1,87 @@
+#  🚀 GPU Docker 빌드 명령어
+#
+#  기본 빌드 명령어
+#
+#  # Makefile을 통한 빌드 (권장)
+#  make build
+#
+#  # 직접 Docker 명령어 (** 이것으로 빌드 하기 - compose 는 gpu가 잘 안된다고 해서 사용안함 **) 
+#  docker build -f Dockerfile.gpu -t video-anonymizer-gpu:slim .
+#
+#  빌드된 이미지 확인
+#
+#  # 이미지 목록 확인
+#  docker images | grep video-anonymizer
+#
+#  # 현재 빌드된 이미지 정보
+#  # video-anonymizer-gpu     slim        [IMAGE_ID]   [시간]   13GB
+#
+#  테스트 명령어
+#
+#  # 하드웨어 정보 확인
+#  make hardware-info
+#
+#  # OpenCV 테스트
+#  docker run --gpus all --rm video-anonymizer-gpu:slim python -c "import cv2; print('OpenCV version:', cv2.__version__)"
+#
+#  # CLI 도움말 확인
+#  docker run --gpus all --rm video-anonymizer-gpu:slim python -m anonymizer.cli_ultra_auto --help
+#
+#  실행 명령어 (빌드 후)
+#
+#  # 자동 최적화 실행 (권장)
+#  make run-auto-speed IN=input.mp4
+#
+#  # 수동 실행
+#  docker run --gpus all --rm \
+#    -v $(PWD):/workspace \
+#    video-anonymizer-gpu:slim \
+#    python -m anonymizer.cli_ultra_auto \
+#    --input video.mp4 --output result.mp4 --auto
+#
+#  현재 빌드 상태
+#
+#  - ✅ 이미지: video-anonymizer-gpu:slim (13GB)
+#  - ✅ 기반: PyTorch 2.0.1 + CUDA 11.7 + cuDNN 8
+#  - ✅ 테스트: 모든 기능 정상 작동 확인
+#  - ✅ 하드웨어: RTX 3060 Ti (8GB) 자동 감지
+
+##==============================================================================================================
+
+#  기본 영상 처리 명령어들
+#
+#  # 1. 자동 최적화 실행 (권장)
+#  make run-auto-speed IN=data/input.mp4
+#
+#  # 2. 고품질 파이프라인
+#  make run-auto-ultra IN=data/input.mp4
+#
+#  # 3. 수동 Docker 실행
+#  docker run --gpus all --rm \
+#    -v "/mnt/d/MYCLAUDE_PROJECT/YOLO-영상내특정객체-모자이크-블러처리-자동화":/workspace \
+#    -w /workspace \
+#    video-anonymizer-gpu:slim \
+#    python -m anonymizer.cli_ultra_auto \
+#    --input data/input.mp4 \
+#    --output output/result.mp4 \
+#    --auto --max-performance
+#
+#  # 4. 기본 CLI 사용
+#  docker run --gpus all --rm \
+#    -v "/mnt/d/MYCLAUDE_PROJECT/YOLO-영상내특정객체-모자이크-블러처리-자동화":/workspace \
+#    -w /workspace \
+#    video-anonymizer-gpu:slim \
+#    python -m anonymizer.cli \
+#    --input data/input.mp4 \
+#    --output output/result_basic.mp4 \
+#    --parts eyes,elbows \
+#    --style mosaic \
+#    --gpu-optimized
+
+
+##==============================================================================================================
+
+
 # GPU 지원 자동 최적화 Docker 이미지
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 

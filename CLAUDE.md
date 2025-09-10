@@ -46,6 +46,42 @@ main 브랜치 사용할 것
 - **CPU**: 16코어/32스레드, **RAM**: 62.7GB
 - **권장 파이프라인**: Speed (고속도 처리)
 
+## 🎬 영상 처리 테스트 결과 (2025.01.20)
+
+### ✅ 성공한 처리 방법들
+
+| 방법 | 처리 시간 | 처리 속도 | 안정성 | 추천도 |
+|------|----------|-----------|--------|---------|
+| **Auto Speed** | 16.42초 | **18.27 FPS** | 높음 | ⭐⭐⭐⭐⭐ |
+| **Basic CLI** | ~30초 | ~10 FPS | 매우높음 | ⭐⭐⭐⭐ |
+| Auto Ultra | 완료 | - | 보통 | ⭐⭐⭐ |
+
+### 🚀 권장 실행 명령어
+
+#### **방법 1: 자동 최적화 Speed (최고 성능)**
+```bash
+make run-auto-speed IN=data/your_video.mp4
+# 출력: output/result_auto_speed.mp4
+```
+
+#### **방법 2: 기본 CLI (최고 안정성)**
+```bash
+docker run --gpus all --rm \
+  -v "/mnt/d/MYCLAUDE_PROJECT/YOLO-영상내특정객체-모자이크-블러처리-자동화":/workspace \
+  -w /workspace \
+  video-anonymizer-gpu:slim \
+  python -m anonymizer.cli \
+  --input data/your_video.mp4 \
+  --output output/result.mp4 \
+  --parts eyes,elbows \
+  --style mosaic
+```
+
+### ⚠️ 주의사항
+- **Half Precision 이슈**: `--gpu-optimized` 플래그 사용 시 Half precision 에러 발생
+- **Ultra 파이프라인**: 컨테이너 hang 이슈로 Speed 파이프라인 권장
+- **GPU 메모리**: 8GB GPU에서 배치크기 64까지 안정적 처리
+
 ## Build & Development Commands
 
 ### 🚀 자동 최적화 명령어 (권장)
