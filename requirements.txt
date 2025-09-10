@@ -5,3 +5,4 @@ PyYAML==6.0.2
 rich==13.7.1
 tqdm==4.66.5
 pytest==8.2.0
+psutil==6.0.0
