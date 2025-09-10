@@ -1,0 +1,40 @@
+# 자동 최적화 기본 설정
+# 이 값들은 하드웨어 감지 결과에 따라 자동으로 조정됩니다
+
+# 기본 모델 및 검출 설정
+pose_model: "yolov8n-pose.pt"  # 하드웨어에 따라 자동 조정됨
+face_cascade: "haarcascade_frontalface_default.xml"
+eye_cascade: "haarcascade_eye.xml"
+
+# 익명화 설정
+style: "mosaic"
+safety_margin_px: 12
+
+# 자동 조정 가능한 성능 설정 (초기값, 하드웨어에 따라 변경됨)
+batch_size: 8              # GPU 메모리에 따라 자동 조정
+confidence: 0.3            # GPU 성능에 따라 자동 조정  
+eye_detection_interval: 2  # GPU 메모리에 따라 자동 조정
+cpu_workers: 4             # CPU 코어에 따라 자동 조정
+queue_size: 32             # RAM에 따라 자동 조정
+opencv_threads: 4          # CPU 코어에 따라 자동 조정
+
+# GPU 설정 (자동 감지)
+device: 0                  # CUDA 디바이스 번호
+half_precision: false      # Compute Capability 7.0+ 에서 자동 활성화
+
+# 런타임 최적화 설정
+auto_memory_management: true      # GPU 메모리 자동 관리
+adaptive_batch_size: true        # 런타임 배치 크기 조정
+performance_monitoring: true     # 성능 모니터링 활성화
+oom_recovery: true              # OOM 자동 복구
+
+# 성능 임계값
+target_fps: 30                  # 목표 FPS (이하시 설정 조정)
+memory_usage_threshold: 0.8     # GPU 메모리 사용률 임계값
+cpu_usage_threshold: 0.8        # CPU 사용률 임계값
+
+# 안전 설정
+max_batch_size: 64             # 최대 배치 크기 제한
+min_batch_size: 1              # 최소 배치 크기
+max_queue_size: 128            # 최대 큐 크기 제한
+max_cpu_workers: 16            # 최대 CPU 워커 수

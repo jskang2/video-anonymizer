@@ -31,7 +31,11 @@ class SpeedOptimizedPipeline:
         }
 
         self.pose_detector = PoseDetector(cfg.pose_model, **gpu_settings)
-        self.gpu_ops = GPUAcceleratedOps(device=f"cuda:{gpu_settings['device']}")
+        # Device 정규화: 이미 cuda: 포함된 경우 중복 방지
+        device = gpu_settings['device']
+        if not str(device).startswith('cuda:') and device != 'cpu':
+            device = f"cuda:{device}"
+        self.gpu_ops = GPUAcceleratedOps(device=str(device))
 
         self.read_queue = queue.Queue(maxsize=self.batch_size * 2)
         self.cpu_queue = queue.Queue(maxsize=self.batch_size * 2)

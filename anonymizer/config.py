@@ -22,7 +22,7 @@ class Config:
     max_det: int = 300
     imgsz: int = 640
     half_precision: bool = False
-    device: str = "0"  # GPU 디바이스 ID
+    device: str = "cuda:0"  # GPU 디바이스 ID
 
     @staticmethod
     def from_yaml(path: Optional[str], overrides: dict | None = None) -> "Config":

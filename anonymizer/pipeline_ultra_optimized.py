@@ -30,7 +30,11 @@ class UltraOptimizedPipeline:
 
         self.pose_detector = PoseDetector(cfg.pose_model, **gpu_settings)
         # self.face_eye_detector는 스레드별로 생성되므로 여기서는 제거
-        self.gpu_ops = GPUAcceleratedOps(device=f"cuda:{gpu_settings['device']}")
+        # Device 정규화: 이미 cuda: 포함된 경우 중복 방지
+        device = gpu_settings['device']
+        if not str(device).startswith('cuda:') and device != 'cpu':
+            device = f"cuda:{device}"
+        self.gpu_ops = GPUAcceleratedOps(device=str(device))
 
         # 파이프라인 단계별 큐
         self.read_queue = queue.Queue(maxsize=self.batch_size * 2)

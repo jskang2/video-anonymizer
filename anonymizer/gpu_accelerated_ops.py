@@ -8,7 +8,14 @@ class GPUAcceleratedOps:
     """GPU 가속 이미지 처리 연산들"""
     
     def __init__(self, device='cuda:0'):
-        self.device = device if torch.cuda.is_available() else 'cpu'
+        # Device 정규화: 이미 cuda: 포함된 경우 중복 방지
+        if torch.cuda.is_available():
+            if not str(device).startswith('cuda:') and device != 'cpu':
+                self.device = f"cuda:{device}"
+            else:
+                self.device = str(device)
+        else:
+            self.device = 'cpu'
         print(f"[GPU Ops] Device: {self.device}")
     
     def bgr_to_gray_gpu(self, frame: np.ndarray) -> np.ndarray:

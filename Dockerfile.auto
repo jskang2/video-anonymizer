@@ -1,13 +1,17 @@
-# GPU 지원 자동 최적화 Docker 이미지
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+# 자동 최적화 Docker 이미지 (CPU 버전)
+FROM ubuntu:22.04
 
 # 시스템 업데이트 및 필수 패키지 설치
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     libgomp1 \
+    libglib2.0-0 \
     libgtk-3-0 \
     libavcodec-dev \
     libavformat-dev \
@@ -18,16 +22,12 @@ RUN apt-get update && apt-get install -y \
     libatlas-base-dev \
     gfortran \
     wget \
-    git \
     && rm -rf /var/lib/apt/lists/*
-
-# OpenCV 설치 (GPU 지원)
-RUN pip install opencv-python-headless
 
 # Python 의존성 설치
 COPY requirements.txt requirements_auto.txt /tmp/
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --no-cache-dir -r /tmp/requirements_auto.txt
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt && \
+    pip3 install --no-cache-dir -r /tmp/requirements_auto.txt
 
 # 작업 디렉토리 설정
 WORKDIR /workspace
@@ -39,12 +39,8 @@ COPY configs/ /workspace/configs/
 # Python 패스 설정
 ENV PYTHONPATH="/workspace:$PYTHONPATH"
 
-# CUDA 환경 변수 설정
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
-
 # output 디렉토리 생성
 RUN mkdir -p /workspace/output
 
 # 기본 명령어
-CMD ["python", "-m", "anonymizer.cli_auto", "--help"]
+CMD ["python3", "-m", "anonymizer.cli_auto", "--help"]

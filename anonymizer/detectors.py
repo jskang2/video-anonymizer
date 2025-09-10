@@ -31,7 +31,19 @@ class PoseDetector:
         self.model = YOLO(model_name)
         
         # GPU 최적화 설정 (config에서 전달받음)
-        self.device = kwargs.get('device', '0' if torch.cuda.is_available() else 'cpu')
+        device_id = kwargs.get('device', 0 if torch.cuda.is_available() else 'cpu')
+        
+        # 디바이스 문자열 정규화
+        if device_id == 'cpu':
+            self.device = 'cpu'
+        elif isinstance(device_id, str) and device_id.isdigit():
+            self.device = f"cuda:{device_id}"  # '0' -> 'cuda:0'
+        elif isinstance(device_id, int):
+            self.device = f"cuda:{device_id}"  # 0 -> 'cuda:0'
+        elif isinstance(device_id, str) and device_id.startswith('cuda'):
+            self.device = device_id  # 'cuda:0' 그대로 유지
+        else:
+            self.device = 'cuda:0'  # 기본값
         self.batch_size = kwargs.get('batch_size', 1)
         self.confidence = kwargs.get('confidence', 0.25)
         self.iou_threshold = kwargs.get('iou_threshold', 0.7)
