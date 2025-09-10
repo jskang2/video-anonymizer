@@ -42,7 +42,7 @@ make run-auto-speed IN=data/your_video.mp4
 ### **방법 2: 기본 CLI (가장 안정적인 방법)**
 
 ```bash
-# 영상 처리 실행
+# 영상 처리 실행 (검증된 성공 명령어)
 docker run --gpus all --rm \
   -v "$(pwd)":/workspace \
   -w /workspace \
@@ -54,20 +54,28 @@ docker run --gpus all --rm \
   --style mosaic
 ```
 
-### **방법 3: 상세 옵션 설정**
+### **방법 3: 수동 Docker 실행 (상세 옵션)**
 
 ```bash
+# 전체 경로 지정 방식 (성공 검증됨)
 docker run --gpus all --rm \
-  -v "$(pwd)":/workspace \
+  -v "/mnt/d/MYCLAUDE_PROJECT/YOLO-영상내특정객체-모자이크-블러처리-자동화":/workspace \
   -w /workspace \
   video-anonymizer-gpu:slim \
   python -m anonymizer.cli \
-  --input data/input.mp4 \
-  --output output/result.mp4 \
+  --input data/20140413_10sec.mp4 \
+  --output output/result_manual.mp4 \
   --parts eyes,elbows \
   --style gaussian \
   --safety 15 \
   --ttl 3
+```
+
+### **방법 4: Make 명령어 사용 (추천)**
+
+```bash
+# Makefile을 통한 실행 (가장 편리함)
+make run IN=data/your_video.mp4 OUT=output/result.mp4 PARTS=eyes,elbows STYLE=mosaic
 ```
 
 ## 🎛️ 설정 옵션
@@ -110,21 +118,30 @@ make hardware-info
 
 #### 2. 메모리 부족 에러
 ```bash
-# 배치 크기를 줄여서 실행
+# 기본 CLI로 실행 (검증된 안정적인 방법)
 docker run --gpus all --rm \
   -v "$(pwd)":/workspace \
   -w /workspace \
   video-anonymizer-gpu:slim \
-  python -m anonymizer.cli_ultra_auto \
+  python -m anonymizer.cli \
   --input data/input.mp4 \
   --output output/result.mp4 \
-  --batch-size 16 --auto
+  --parts eyes,elbows \
+  --style mosaic
 ```
 
-#### 3. Half Precision 에러
+#### 3. Half Precision 에러 해결
 ```bash
-# --gpu-optimized 플래그 제거하고 실행
-# (문서에 명시된 기본 CLI 방법 사용)
+# 기본 CLI 사용 (--gpu-optimized 플래그 없이)
+docker run --gpus all --rm \
+  -v "$(pwd)":/workspace \
+  -w /workspace \
+  video-anonymizer-gpu:slim \
+  python -m anonymizer.cli \
+  --input data/input.mp4 \
+  --output output/result.mp4 \
+  --parts eyes,elbows \
+  --style mosaic
 ```
 
 #### 4. 컨테이너 Hang 현상
