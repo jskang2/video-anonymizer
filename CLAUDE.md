@@ -21,6 +21,30 @@ main 브랜치 사용할 것
 
 원격 저장소에 푸시할 때, 먼저 HTTP 버퍼 크기를 늘리고 조금 씩 나누어 푸시할 것. 에러 시 작은 변경사항만 포함하는 새커밋을 만들어 푸시할 것
 
+## 🚀 GPU Docker 빌드 및 테스트 완료 상태
+
+### ✅ 빌드 성공 확인 (2025.01.20)
+- **이미지명**: `video-anonymizer-gpu:slim` (13GB)
+- **기반**: PyTorch 2.0.1 + CUDA 11.7 + cuDNN 8
+- **상태**: 모든 테스트 성공적으로 완료
+
+### 🔧 주요 수정사항
+1. **Dockerfile.gpu 환경변수 추가**: 
+   - `ENV DEBIAN_FRONTEND=noninteractive`
+   - `ENV TZ=Asia/Seoul`
+2. **OpenGL 라이브러리 추가**: `libgl1-mesa-glx`
+3. **requirements-cpu.txt 수정**: PyTorch CPU 버전 태그 제거
+
+### ✅ 테스트 검증 완료
+- **OpenCV**: v4.11.0 정상 로딩 ✅
+- **하드웨어 감지**: RTX 3060 Ti (8GB) 자동 감지 ✅  
+- **자동 최적화**: Speed 파이프라인 권장 ✅
+- **CLI 도구**: 모든 명령어 정상 작동 ✅
+
+### 🎮 지원 하드웨어
+- **GPU**: NVIDIA GeForce RTX 3060 Ti (8.0GB)
+- **CPU**: 16코어/32스레드, **RAM**: 62.7GB
+- **권장 파이프라인**: Speed (고속도 처리)
 
 ## Build & Development Commands
 

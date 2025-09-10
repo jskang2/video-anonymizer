@@ -1,8 +1,13 @@
 # GPU 지원 자동 최적화 Docker 이미지
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
+# 환경변수 설정 (비대화형 설치)
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+
 # 시스템 업데이트 및 필수 패키지 설치
 RUN apt-get update && apt-get install -y \
+    tzdata \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -16,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libxvidcore-dev \
     libx264-dev \
     libatlas-base-dev \
+    libgl1-mesa-glx \
     gfortran \
     wget \
     git \
