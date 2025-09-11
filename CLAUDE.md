@@ -206,7 +206,7 @@ make hardware-info
 - `batch_size`: GPU 메모리 기반 최적 배치 크기 (1-64)
 - `cpu_workers`: CPU 코어 기반 최적 워커 수
 - `confidence`: GPU 성능 기반 검출 임계값
-- `pose_model`: GPU 메모리에 따른 최적 모델 선택
+- `pose_model`: GPU 메모리에 따른 최적 모델 선택 (models/yolov8n-pose.pt ↔ models/yolov8s-pose.pt)
 - `half_precision`: GPU 지원 여부에 따른 FP16 사용
 - `eye_detection_interval`: GPU 성능에 따른 검출 간격
 
