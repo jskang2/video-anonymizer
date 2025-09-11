@@ -12,17 +12,18 @@ Video Anonymizer MVP - A Docker-based video processing pipeline for automatic an
 
 **보안을 위해 환경변수 파일 사용:**
 ```bash
-# .env 파일 생성 (Git에서 제외됨)
-cp .env.template .env
+# 1. 환경변수 파일 생성 (Git에서 제외됨)
+cp my-env-template.txt my-env.txt
 
-# .env 파일에 실제 토큰 입력
-GITHUB_TOKEN=your_actual_token_here
-GITHUB_REPO_URL=https://github.com/jskang2/video-anonymizer
+# 2. my-env.txt 파일 수정하여 실제 토큰 입력
+# GITHUB_TOKEN=실제_토큰_여기_입력
+# GITHUB_REPO=https://github.com/jskang2/video-anonymizer
 ```
 
-**Git 설정 시 환경변수 사용:**
-- Personal Access Token은 `.env` 파일에서 관리
-- Repository URL: https://github.com/jskang2/video-anonymizer
+**Claude Code 사용 시:**
+- `my-env.txt` 파일을 읽어서 토큰 정보 확인
+- Git 작업 시 해당 파일의 토큰 사용
+- 파일은 `.gitignore`에 의해 Git에서 자동 제외됨
 
 ### Git 설정 및 푸시 규칙
 .git 이 존재하지 않으면 Git 저장소 초기화 할것 (git init)

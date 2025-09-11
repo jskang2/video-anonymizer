@@ -62,6 +62,7 @@ logs/
 .env
 .env.local
 .env.*.local
+my-env.txt
 
 # Temporary files
 tmp/

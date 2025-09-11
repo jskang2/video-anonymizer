@@ -1,0 +1,10 @@
+# GitHub 환경 설정 파일
+# 이 파일을 my-env.txt로 복사한 후 실제 토큰을 입력하세요
+
+GITHUB_TOKEN=여기에_실제_토큰_입력
+GITHUB_REPO=https://github.com/jskang2/video-anonymizer
+
+# 사용법:
+# 1. cp my-env-template.txt my-env.txt
+# 2. my-env.txt 파일 수정하여 실제 토큰 입력
+# 3. my-env.txt는 Git에서 자동 제외됨 (보안 안전)
