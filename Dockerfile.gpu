@@ -1,3 +1,9 @@
+#  ===== [GPU Docker 빌드 및 사용법] =====
+#  # GPU Docker 빌드 명령
+#  docker build -f Dockerfile.gpu -t video-anonymizer-gpu:slim .
+#
+
+
 #  🚀 GPU Docker 빌드 명령어
 #
 #  기본 빌드 명령어
@@ -50,33 +56,59 @@
 
 #  기본 영상 처리 명령어들
 #
-#  # 1. 자동 최적화 실행 (권장)
-#  make run-auto-speed IN=data/input.mp4
+#  ● 🎬 완성된 수동/CLI 사용법 정리
 #
-#  # 2. 고품질 파이프라인
-#  make run-auto-ultra IN=data/input.mp4
+#  ✅ 성공 검증된 4가지 실행 방법
 #
-#  # 3. 수동 Docker 실행
+#  1. 자동 최적화 (가장 쉬운 방법)
+#
+#  # 컨테이너 환경 설정 (최초 1회)
+#  make container-setup
+#
+#  # 자동 최적화 실행
+#  make run-auto-speed IN=data/your_video.mp4
+#
+#  # 결과: output/result_auto_speed.mp4
+#
+#  2. 기본 CLI (가장 안정적인 방법)
+#
+#  # 기본 CLI 실행 (검증된 성공 명령어)
 #  docker run --gpus all --rm \
-#    -v "/mnt/d/MYCLAUDE_PROJECT/YOLO-영상내특정객체-모자이크-블러처리-자동화":/workspace \
+#    -v "$(pwd)":/workspace \
 #    -w /workspace \
 #    video-anonymizer-gpu:slim \
-#    python -m anonymizer.cli_ultra_auto \
-#    --input data/input.mp4 \
+#    python -m anonymizer.cli \
+#    --input data/your_video.mp4 \
 #    --output output/result.mp4 \
-#    --auto --max-performance
+#    --parts eyes,elbows \
+#    --style mosaic
 #
-#  # 4. 기본 CLI 사용
+#  3. 수동 Docker (상세 옵션)
+#
+#  # 전체 경로 지정 방식 (성공 검증됨)
 #  docker run --gpus all --rm \
 #    -v "/mnt/d/MYCLAUDE_PROJECT/YOLO-영상내특정객체-모자이크-블러처리-자동화":/workspace \
 #    -w /workspace \
 #    video-anonymizer-gpu:slim \
 #    python -m anonymizer.cli \
-#    --input data/input.mp4 \
-#    --output output/result_basic.mp4 \
+#    --input data/20140413_10sec.mp4 \
+#    --output output/result_manual.mp4 \
 #    --parts eyes,elbows \
-#    --style mosaic \
-#    --gpu-optimized
+#    --style gaussian \
+#    --safety 15 \
+#    --ttl 3
+#
+#  4. Make 명령어 (추천)
+#
+#  # Makefile을 통한 실행 (가장 편리함)
+#  make run IN=data/your_video.mp4 OUT=output/result.mp4 PARTS=eyes,elbows STYLE=mosaic
+#
+#  📊 성능 비교 (검증됨)
+#
+#  - Auto Speed: 18.27 FPS (RTX 3060 Ti에서 검증)
+#  - Basic CLI: ~10 FPS (안정성 최우선)
+#  - Manual Docker: 상황에 따라 변동
+#  - Make 명령어: 편의성 최고
 
 
 ##==============================================================================================================
@@ -126,7 +158,7 @@ COPY anonymizer/ /workspace/anonymizer/
 COPY configs/ /workspace/configs/
 
 # Python 패스 설정
-ENV PYTHONPATH="/workspace:$PYTHONPATH"
+ENV PYTHONPATH="/workspace"
 
 # CUDA 환경 변수 설정
 ENV NVIDIA_VISIBLE_DEVICES=all
