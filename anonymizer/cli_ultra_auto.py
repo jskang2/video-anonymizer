@@ -179,7 +179,7 @@ def main():
         config_overrides = {
             "input": args.input,
             "output": args.output,
-            "pose_model": "yolov8s-pose.pt",
+            "pose_model": "models/yolov8s-pose.pt",
             "half_precision": False
         }
         

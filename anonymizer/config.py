@@ -10,7 +10,7 @@ class Config:
     style: str = "mosaic"  # mosaic|gaussian|boxblur|pixelate
     safety_margin_px: int = 12
     ttl_frames: int = 5
-    pose_model: str = "yolov8n-pose.pt"
+    pose_model: str = "models/yolov8n-pose.pt"
     eye_cascade: str = "haarcascade_eye.xml"
     face_cascade: str = "haarcascade_frontalface_default.xml"
     log_every: int = 30

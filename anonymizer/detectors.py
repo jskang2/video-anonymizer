@@ -26,7 +26,7 @@ COCO_KPTS = {
 }
 
 class PoseDetector:
-    def __init__(self, model_name: str = "yolov8n-pose.pt", **kwargs):
+    def __init__(self, model_name: str = "models/yolov8n-pose.pt", **kwargs):
         import torch
         self.model = YOLO(model_name)
         

@@ -139,15 +139,15 @@ class AutoTuner:
     def select_optimal_model(self) -> str:
         """GPU 성능에 따른 최적 모델 선택"""
         if not self.hw.gpu_available:
-            return "yolov8n-pose.pt"
+            return "models/yolov8n-pose.pt"
         
         # GPU 메모리와 컴퓨트 능력에 따라 모델 선택
         if self.hw.gpu_memory_gb >= 8 and self.hw.gpu_compute_capability[0] >= 7:
-            return "yolov8m-pose.pt"  # 중간 모델
+            return "models/yolov8m-pose.pt"  # 중간 모델
         elif self.hw.gpu_memory_gb >= 4:
-            return "yolov8s-pose.pt"  # 작은 모델
+            return "models/yolov8s-pose.pt"  # 작은 모델
         else:
-            return "yolov8n-pose.pt"  # 나노 모델
+            return "models/yolov8n-pose.pt"  # 나노 모델
     
     def should_use_half_precision(self) -> bool:
         """Half precision 사용 여부 결정"""

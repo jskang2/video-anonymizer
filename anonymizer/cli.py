@@ -34,12 +34,12 @@ def main():
                 print(f"[GPU] Device: {torch.cuda.get_device_name(0)}")
                 print(f"[GPU] Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
                 overrides.update({
-                    "pose_model": "yolov8s-pose.pt",  # 더 큰 모델로 변경
+                    "pose_model": "models/yolov8s-pose.pt",  # 더 큰 모델로 변경
                     "confidence": 0.3,              # confidence 낮춤
                     "device": "0",                  # GPU 디바이스 명시
                     "half_precision": True          # FP16 사용
                 })
-                print("[GPU] GPU optimized settings applied: yolov8s-pose, FP16, conf=0.3")
+                print("[GPU] GPU optimized settings applied: models/yolov8s-pose, FP16, conf=0.3")
             else:
                 print("[Warning] CUDA not available, GPU optimization disabled")
         except ImportError:
