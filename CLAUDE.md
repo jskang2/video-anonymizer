@@ -167,7 +167,9 @@ pytest tests/test_smoke.py -v
 
 ## 개발자 정보
 
-상세한 개발자 가이드는 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)를 참조하세요.
+상세한 문서:
+- [개발자 가이드](docs/DEVELOPMENT.md) - 아키텍처, 설정, 테스트 전략
+- [프로젝트 구조](docs/PROJECT_STRUCTURE.md) - 전체 파일 구조 및 모듈 설명
 
 ### 주요 아키텍처
 - **AnonymizePipeline**: TTL 기반 ROI 지속성을 갖춘 메인 오케스트레이터

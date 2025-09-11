@@ -17,10 +17,10 @@
     "cpu_workers": 8,
     "queue_size": 64,
     "confidence": 0.4,
-    "pose_model": "yolov8s-pose.pt",
+    "pose_model": "models/yolov8s-pose.pt",
     "eye_detection_interval": 1,
     "half_precision": true,
     "opencv_threads": 8
   },
-  "timestamp": 1757552877.907515
+  "timestamp": 1757556113.7716475
 }

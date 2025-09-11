@@ -177,45 +177,11 @@ make container-clean
 
 ## 🛠️ 개발자 정보
 
-### Core Architecture
+상세한 개발자 가이드와 프로젝트 구조는 다음 문서를 참조하세요:
+- [개발자 가이드](docs/DEVELOPMENT.md) - 아키텍처, 설정, 테스트 전략
+- [프로젝트 구조](docs/PROJECT_STRUCTURE.md) - 전체 파일 구조 및 모듈 설명
 
-**AnonymizePipeline** (`pipeline.py`) - Main orchestrator that coordinates the entire processing flow with TTL-based ROI persistence.
-
-**Detection System** (`detectors.py`):
-- `PoseDetector`: YOLOv8-pose wrapper for 17-point COCO keypoints, extracts elbow positions (indices 7,8)
-- `FaceEyeDetector`: Haar cascade wrapper for face/eye detection with nested ROI processing
-
-**ROI System** (`roi.py`):
-- Converts keypoints to circular ROIs (elbows) and bounding boxes to elliptical ROIs (eyes)
-- Implements adaptive sizing based on elbow-to-wrist distance
-- Creates soft masks with Gaussian feathering for natural blending
-
-**Auto-Optimization System** (`auto_optimizer.py`):
-- `HardwareProfiler`: Automatic hardware detection and analysis
-- `AutoTuner`: Optimal settings calculation based on hardware capabilities
-- `RuntimeOptimizer`: Dynamic performance monitoring and adjustment
-- `AutoConfig`: Configuration generation and caching system
-
-### Configuration
-
-Default configuration in `configs/default.yaml` with CLI override support. Key parameters:
-- `safety_margin_px`: Expands ROI boundaries (default: 12px)
-- `ttl_frames`: Frames to maintain ROI when detection fails (default: 5)
-- `pose_model`: YOLOv8 variant (default: yolov8n-pose.pt)
-- `style`: Anonymization method (mosaic|gaussian|boxblur|pixelate)
-
-### Testing Strategy
-
-**Smoke Test** (`tests/test_smoke.py`): Creates synthetic 10-frame black video, processes through full pipeline, verifies output file creation and non-zero size.
-
-For development, use synthetic videos for consistent testing since real videos may have detection variance.
-
-### Development Notes
-
-**Model Dependencies**: YOLO models download automatically on first use. Eye/face cascades are included with OpenCV.
-
-**Video I/O**: Uses OpenCV VideoCapture/VideoWriter with MP4V codec. FFmpeg included in Docker for broader format support.
-
-**Error Handling**: Missing keypoints return `None`, empty detections trigger TTL fallback logic.
-
-**Performance**: Auto-optimized based on hardware capabilities. GPU version uses Dockerfile.gpu.
+### 핵심 아키텍처
+- **AnonymizePipeline**: TTL 기반 ROI 지속성을 갖춘 메인 오케스트레이터
+- **AI Auto-Optimization**: 하드웨어 자동 감지 및 최적 설정 시스템
+- **Detection System**: YOLO 포즈 + Haar 캐스케이드 병렬 검출
