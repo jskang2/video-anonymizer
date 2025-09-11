@@ -1,3 +1,18 @@
+#  ===== [CPU Docker 빌드 및 사용법] =====
+#	# 도커 빌드
+#	docker build -f Dockerfile.cpu -t video-anonymizer-cpu:latest .
+#
+#	# 도커 cpu로 실행
+#   docker run --rm \
+#    -v "$(pwd)":/app \
+#    video-anonymizer-cpu:latest \
+#    python -m anonymizer.cli \
+#      --input data/20140413_10sec.mp4 \
+#      --output output/result_cpu.mp4 \
+#      --parts eyes,elbows \
+#      --style mosaic
+	
+
 # CPU 전용 Docker 이미지 - 기본 처리 (~5 FPS)
 # GPU가 없는 환경이나 호환성 테스트용
 FROM python:3.10-slim

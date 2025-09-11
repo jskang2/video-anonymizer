@@ -108,105 +108,71 @@ make container-status
 make container-clean
 ```
 
-### Docker Commands (기본)
+### GPU Docker Commands (권장)
 ```bash
-# Build the container
+# GPU 이미지 빌드
 make build
-docker build -t video-anonymizer-mvp:latest .
+# 또는 직접: docker build -f Dockerfile.gpu -t video-anonymizer-gpu:slim .
 
-# Download sample video for testing
-make demo
+# 🤖 AI 자동 최적화 (권장)
+make container-setup                              # 최초 1회 설정
+make run-auto-speed IN=data/video.mp4            # 최고속도 (93+ FPS)
+make run-auto-ultra IN=data/video.mp4            # 최고품질 (69+ FPS)
 
-# Run video processing (기본 파이프라인)
-make run IN=data/in.mp4 OUT=data/out.mp4 PARTS=eyes,elbows STYLE=mosaic
+# 하드웨어 정보 확인
+make hardware-info
 
-# Run tests
-make test
-docker run --rm -v $(PWD):/app video-anonymizer-mvp:latest pytest -q
-
-# Direct CLI usage
-docker run --rm -v $(PWD):/app video-anonymizer-mvp:latest \
-  python -m anonymizer.cli --input data/in.mp4 --output data/out.mp4 \
-  --parts eyes,elbows --style mosaic --safety 12 --ttl 5
+# 기본 CLI 실행 (검증된 안정적 방법)
+docker run --gpus all --rm \
+  -v "$(pwd)":/workspace \
+  -w /workspace \
+  video-anonymizer-gpu:slim \
+  python -m anonymizer.cli \
+  --input data/video.mp4 \
+  --output output/result.mp4 \
+  --parts eyes,elbows \
+  --style mosaic
 ```
 
-### Local Development
+### CPU Docker Commands (GPU 없는 환경)
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# CPU 이미지 빌드
+docker build -f Dockerfile.cpu -t video-anonymizer-cpu:latest .
 
-# Run directly without Docker
-python -m anonymizer.cli --config configs/default.yaml
-
-# Run single test
-pytest tests/test_smoke.py -v
-pytest tests/test_smoke.py::test_smoke -v
+# CPU로 실행 (~5 FPS)
+docker run --rm \
+  -v "$(pwd)":/app \
+  video-anonymizer-cpu:latest \
+  python -m anonymizer.cli \
+  --input data/video.mp4 \
+  --output output/result_cpu.mp4 \
+  --parts eyes,elbows \
+  --style mosaic
 ```
 
-## Core Architecture
+### Local Development (빠른 개발용)
+```bash
+# 가벼운 CPU 환경 설정
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+pip install -r requirements-cpu.txt
 
-### Processing Pipeline Flow
-1. **VideoReader** → frame-by-frame processing
-2. **Detection Phase** → parallel detection of eyes (Haar cascades) and elbows (YOLO pose keypoints)
-3. **ROI Generation** → convert detections to regions of interest with safety margins
-4. **TTL Logic** → maintain previous ROIs for specified frames when detection fails (reduces flicker)
-5. **Mask Creation** → soft masks with feathering for smooth blending
-6. **Anonymization** → apply style (mosaic/gaussian/boxblur/pixelate) to masked regions
-7. **VideoWriter** → output processed frames
+# 로컬에서 빠른 테스트
+python -m anonymizer.cli --input data/video.mp4 --output output/local.mp4
 
-### Key Components
+# 단위 테스트
+pytest tests/test_smoke.py -v
+```
 
-**AnonymizePipeline** (`pipeline.py`) - Main orchestrator that coordinates the entire processing flow with TTL-based ROI persistence.
+## 개발자 정보
 
-**Detection System** (`detectors.py`):
-- `PoseDetector`: YOLOv8-pose wrapper for 17-point COCO keypoints, extracts elbow positions (indices 7,8)
-- `FaceEyeDetector`: Haar cascade wrapper for face/eye detection with nested ROI processing
+상세한 개발자 가이드는 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)를 참조하세요.
 
-**ROI System** (`roi.py`):
-- Converts keypoints to circular ROIs (elbows) and bounding boxes to elliptical ROIs (eyes)
-- Implements adaptive sizing based on elbow-to-wrist distance
-- Creates soft masks with Gaussian feathering for natural blending
-
-**Configuration** (`config.py`): Dataclass-based config with YAML loading and CLI override support.
-
-### Critical Architecture Details
-
-**TTL Anti-Flicker Logic**: When detections fail, the pipeline reuses previous ROIs for `ttl_frames` to prevent flickering. This is essential for consistent anonymization across frames.
-
-**ROI Coordinate System**: All ROIs use image pixel coordinates (float) with adaptive sizing:
-- Elbows: Circle radius = 0.5 × elbow-to-wrist distance (min 12px) + safety margin
-- Eyes: Ellipse dimensions = bounding box dimensions + safety margin
-
-**Processing Styles**:
-- `mosaic/pixelate`: Downsample to 1/16 resolution then upscale with nearest interpolation
-- `gaussian`: 25×25 kernel Gaussian blur
-- `boxblur`: 25×25 box filter
-
-**Memory Efficiency**: Frame-by-frame processing with immediate output writing, no batch loading.
-
-## Configuration
-
-Default configuration in `configs/default.yaml` with CLI override support. Key parameters:
-- `safety_margin_px`: Expands ROI boundaries (default: 12px)
-- `ttl_frames`: Frames to maintain ROI when detection fails (default: 5)
-- `pose_model`: YOLOv8 variant (default: yolov8n-pose.pt)
-- `style`: Anonymization method (mosaic|gaussian|boxblur|pixelate)
-
-## Testing Strategy
-
-**Smoke Test** (`tests/test_smoke.py`): Creates synthetic 10-frame black video, processes through full pipeline, verifies output file creation and non-zero size.
-
-For development, use synthetic videos for consistent testing since real videos may have detection variance.
-
-## Development Notes
-
-**Model Dependencies**: YOLO models download automatically on first use. Eye/face cascades are included with OpenCV.
-
-**Video I/O**: Uses OpenCV VideoCapture/VideoWriter with MP4V codec. FFmpeg included in Docker for broader format support.
-
-**Error Handling**: Missing keypoints return `None`, empty detections trigger TTL fallback logic.
-
-**Performance**: CPU-optimized with yolov8n-pose.pt (nano model). GPU version available via Dockerfile.gpu.
+### 주요 아키텍처
+- **AnonymizePipeline**: TTL 기반 ROI 지속성을 갖춘 메인 오케스트레이터
+- **Detection System**: YOLO 포즈 + Haar 캐스케이드 병렬 검출
+- **Auto-Optimization System**: 하드웨어 자동 감지 및 최적 설정
 
 ## 🤖 자동 최적화 시스템 (NEW)
 

@@ -2,6 +2,7 @@
 #  # GPU Docker 빌드 명령
 #  docker build -f Dockerfile.gpu -t video-anonymizer-gpu:slim .
 #
+#	# GPU Docker로 실행하기
 #	make run-auto-speed IN=data/20140413.mp4 OUT=output/result1.mp4 PARTS=eyes,elbows STYLE=mosaic
 
 
