@@ -8,10 +8,21 @@ Video Anonymizer MVP - A Docker-based video processing pipeline for automatic an
 
 ## Git 워크플로우
 
-### github 푸쉬를 위해 다음 정보 사용:
-GIT HUB의 Personal Access Token: [보안상 제거됨 - 별도 관리 필요]
+### GitHub 설정
 
-Github 주소 : https://github.com/jskang2/video-anonymizer
+**보안을 위해 환경변수 파일 사용:**
+```bash
+# .env 파일 생성 (Git에서 제외됨)
+cp .env.template .env
+
+# .env 파일에 실제 토큰 입력
+GITHUB_TOKEN=your_actual_token_here
+GITHUB_REPO_URL=https://github.com/jskang2/video-anonymizer
+```
+
+**Git 설정 시 환경변수 사용:**
+- Personal Access Token은 `.env` 파일에서 관리
+- Repository URL: https://github.com/jskang2/video-anonymizer
 
 ### Git 설정 및 푸시 규칙
 .git 이 존재하지 않으면 Git 저장소 초기화 할것 (git init)
